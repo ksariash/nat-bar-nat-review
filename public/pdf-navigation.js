@@ -39,3 +39,13 @@ export function visiblePartIndex(rects, viewport) {
   });
   return best;
 }
+
+// Bounds are in scroll-content coordinates. Keep fully visible text still; otherwise
+// reveal its whole width where possible, or its leading edge when wider than the view.
+export function horizontalTarget(left, right, current, width, scrollWidth, padding = 16) {
+  const available = width - 2 * padding;
+  let target = current;
+  if (right - left > available || left < current + padding) target = left - padding;
+  else if (right > current + width - padding) target = right - width + padding;
+  return Math.max(0, Math.min(Math.max(0, scrollWidth - width), target));
+}

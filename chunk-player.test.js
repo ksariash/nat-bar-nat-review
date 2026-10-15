@@ -18,3 +18,15 @@ test('codec rounding gaps and endpoints still seek',()=>{const[a,p]=setup();p.se
 test('retry preserves the failed seek target',()=>{const[a,p]=setup();p.seek(75,true);a.error={code:2};a.dispatchEvent(new Event('error'));p.play();a.error=null;a.ready();assert.equal(p.time(),75);assert.equal(a.plays,1)});
 test('media precision cannot leave an exact chapter seek in the preceding chapter',()=>{const[a,p]=setup();p.seek(75,false);a.ready();a.currentTime=14.989999999;assert.equal(p.time(),75)});
 test('queued events from an old source cannot reverse the latest playback command',()=>{const[a,p]=setup();p.seek(75,true);a.ready();a.dispatchEvent(new Event('pause'));assert.equal(p.playing,true);p.pause();a.dispatchEvent(new Event('play'));assert.equal(p.playing,false)});
+test('one pause cancels a play request that starts asynchronously after the click',async()=>{
+ const[a,p]=setup();p.seek(5,false);a.ready();let finish;
+ a.play=()=>new Promise(resolve=>{finish=()=>{a.paused=false;a.dispatchEvent(new Event('play'));resolve()}});
+ p.play();p.pause();finish();await Promise.resolve();
+ assert.equal(a.paused,true);assert.equal(p.playing,false);
+});
+test('a new play command wins over completion of an older cancelled play request',async()=>{
+ const[a,p]=setup();p.seek(5,false);a.ready();const requests=[];
+ a.play=()=>new Promise(resolve=>requests.push(()=>{a.paused=false;a.dispatchEvent(new Event('play'));resolve()}));
+ p.play();p.pause();p.play();requests[0]();requests[1]();await Promise.resolve();
+ assert.equal(a.paused,false);assert.equal(p.playing,true);p.pause();assert.equal(p.playing,false);
+});

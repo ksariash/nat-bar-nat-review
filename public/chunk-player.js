@@ -1,11 +1,13 @@
 // Keep playback intent separate from the media element's temporary paused state while loading.
 export function createChunkPlayer(audio, chunks, duration, changed = () => {}, failed = () => {}) {
-  let index = 0, pending = null, loading = false, intended = false, revision = 0;
+  let index = 0, pending = null, loading = false, intended = false, revision = 0, starting = 0;
   const time = () => pending ?? Math.min(duration, Math.round((chunks[index].start + (audio.currentTime || 0)) * 1000) / 1000);
   async function playReady() {
     const request = revision;
-    try { await audio.play(); }
+    starting++;
+    try { await audio.play(); if (!intended) audio.pause(); }
     catch (e) { if (request === revision && e.name !== 'AbortError') { intended = false; failed(e); changed(); } }
+    finally { starting--; changed(); }
   }
   function seek(value, play = intended, reload = false) {
     const t = Math.min(duration, Math.max(0, Number(value) || 0));
@@ -33,15 +35,15 @@ export function createChunkPlayer(audio, chunks, duration, changed = () => {}, f
     changed();
   });
   // Media events are queued: an event from the previous source must not undo a newer command.
-  audio.addEventListener('play', () => { if (!audio.paused) intended = true; changed(); });
-  audio.addEventListener('pause', () => { if (!loading && audio.paused && !audio.ended) intended = false; changed(); });
+  audio.addEventListener('play', () => { if (!intended && !audio.paused) audio.pause(); changed(); });
+  audio.addEventListener('pause', () => { if (!loading && !starting && audio.paused && !audio.ended) intended = false; changed(); });
   audio.addEventListener('error', () => { intended = false; loading = false; changed(); });
   return {
     seek, time,
     get index() { return index; },
     get pending() { return pending; },
-    get playing() { return intended; },
-    play() { intended = true; if (audio.error) seek(time(), true, true); else if (!loading) playReady(); changed(); },
+    get playing() { return intended || (!audio.paused && !audio.ended); },
+    play() { revision++; intended = true; if (audio.error) seek(time(), true, true); else if (!loading) playReady(); changed(); },
     pause() { revision++; intended = false; audio.pause(); changed(); }
   };
 }
