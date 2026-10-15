@@ -18,3 +18,8 @@
 }
 @media(min-width:651px) and (max-width:900px){.workspace{display:block}.reader{height:100%}.details{left:auto;width:380px}.sidebar{right:auto;width:340px}.masthead .course{display:none}.mobile-reading-tools{justify-content:center;gap:40px}.player{max-width:none}}
 @media(max-width:360px){.masthead{padding:0 10px}.brand{font-size:14px}.mobile-reading-tools{gap:5px;padding:8px}.column-tools button{padding:0 7px}.mobile-zoom button{min-width:31px}.detail-tabs{gap:13px;padding-left:15px}.detail-tabs button{font-size:11px}.transport-buttons{gap:17px}}
+
+/* Keep labels centered independently of icon dimensions. */
+.skip small{left:50%;top:50%;transform:translate(-50%,-50%);line-height:1;font-weight:700;text-align:center;pointer-events:none}
+.review-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px}.essay-readiness{display:grid;gap:8px;padding:14px;background:#edf3e8;border-radius:10px;margin-top:20px;font-size:11px}.essay-readiness progress{width:100%;height:7px;accent-color:var(--teal)}.essay-readiness span{color:#64745e}.filters{flex-wrap:wrap}.player-options{gap:6px}
+@media(max-width:900px){.player-options{gap:4px;right:10px}.player-options>button{padding:0 6px!important;font-size:8px!important}.now-playing{max-width:calc(100% - 218px)}.filters button{flex:1;padding-left:6px;padding-right:6px}}
