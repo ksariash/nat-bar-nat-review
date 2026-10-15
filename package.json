@@ -1,1 +1,21 @@
-{"name":"nat-bar-nat-review","version":"1.0.0","private":true,"type":"module","scripts":{"build":"node build.mjs","test":"node --test worker.test.js","deploy":"npm run build && wrangler deploy","dev":"npm run build && wrangler dev"},"dependencies":{"pdfjs-dist":"6.4.299"},"devDependencies":{"wrangler":"^4.0.0"},"engines":{"node":">=22"}}
+{
+  "name": "nat-bar-nat-review",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test worker.test.js",
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  },
+  "dependencies": {
+    "pdfjs-dist": "6.4.299"
+  },
+  "devDependencies": {
+    "wrangler": "4.151.0"
+  },
+  "engines": {
+    "node": ">=22.13"
+  }
+}
