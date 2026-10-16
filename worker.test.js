@@ -31,3 +31,8 @@ test('missing storage and missing objects fail explicitly',async()=>{
  assert.equal((await serveStudyAsset(new Request('https://test/assets/review.json'),{},'review.json')).status,503);
  assert.equal((await serveStudyAsset(new Request('https://test/assets/review.json'),{STUDY_ASSETS:{head:async()=>null}},'review.json')).status,404);
 });
+test('chaptered audio is downloadable with ranges; the chapter index is readable',async()=>{
+ const r=await serveStudyAsset(new Request('https://test/assets/review-full.m4a',{headers:{Range:'bytes=0-4'}}),env,'review-full.m4a');
+ assert.equal(r.status,206);assert.match(r.headers.get('Content-Disposition'),/^attachment; filename="SCP-review-with-chapters.m4a"$/);assert.equal(await r.text(),'01234');
+ const index=await serveStudyAsset(new Request('https://test/assets/review-chapters.html'),env,'review-chapters.html');assert.equal(index.status,200);assert.equal(index.headers.get('Content-Type'),'text/html; charset=utf-8');
+});

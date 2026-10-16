@@ -21,10 +21,12 @@ The contents of the original site assets folder should already exist at these ke
 - `rashti-review/review.json`
 - `rashti-review/summary5.pdf`
 - `rashti-review/review-00.m4a` through `rashti-review/review-07.m4a`
+- `rashti-review/review-full.m4a` — full cleaned audio with chapter titles and PDF page references
+- `rashti-review/review-chapters.html` — companion chapter index linking to audio times and notes
 
 `review.json` must be the site's runtime copy, which includes `audio_chunks` (from `site/dist/assets/review.json`), not the earlier alignment-only JSON. The audio chunk references must be `assets/review-00.m4a` etc. The PDF, JSON, and audio remain in R2 and are not committed to this public repository.
 
-Requests to `/assets/*` are routed through the Worker, which reads only these ten approved object names. Other app files use the static `ASSETS` binding. The bucket need not be publicly exposed. The Worker supports HEAD, conditional reads, and single byte ranges for PDF/audio seeking, and sets MIME types explicitly even if objects were uploaded as octet-stream.
+Requests to `/assets/*` are routed through the Worker, which reads only these twelve approved object names. Other app files use the static `ASSETS` binding. The bucket need not be publicly exposed. The Worker supports HEAD, conditional reads, and single byte ranges for PDF/audio seeking, and sets MIME types explicitly even if objects were uploaded as octet-stream. The full audio response includes an attachment filename for download.
 
 The static frontend uses PDF.js downloaded from npm during build. Google Fonts are optional; system sans-serif fallback works if unavailable.
 
@@ -39,3 +41,7 @@ npm run dev
 Local Wrangler development uses a local R2 bucket by default. To test the real files, deploy to the connected Worker or seed the local R2 bucket. Never commit credentials or study media. Deployment credentials are handled by Cloudflare's Git integration.
 
 The transcript is an automated draft with uncertainty markers. Audio/PDF links are reviewed topic-level matches, not exact sentence alignment. Bookmarks, studied topics, essay answers, and checklist progress are stored locally in each student's browser. There are 58 multiple-choice questions and 5 essays; study-section counts are not question numbers.
+
+Review mode plays all visits linked to topics flagged Needs review, in audio order. Shared chapters and overlapping time ranges play once; the queue stops at the end. Skip off-topic remains a separate setting. Notes-only topics stay in the map. The mobile Focus view shares the main playback bar, and each visit has a separate PDF button that does not seek audio. PDF/Audio map order is remembered; opening the map or changing order reveals the selected topic.
+
+Deep links accept validated `chapter` and `topic` IDs from `review.json`, for example `?chapter=chapter-001&topic=study-002`. They open the linked notes and seek without autoplay. Downloads always contain the full recording, independent of review/skip settings. M4A chapter display depends on the student's audio player; the HTML index provides portable links back into the site.

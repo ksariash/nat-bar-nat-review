@@ -1,6 +1,8 @@
 const FILES = new Map([
   ['review.json', 'application/json; charset=utf-8'],
   ['summary5.pdf', 'application/pdf'],
+  ['review-full.m4a', 'audio/mp4'],
+  ['review-chapters.html', 'text/html; charset=utf-8'],
   ...Array.from({length: 8}, (_, i) => [`review-${String(i).padStart(2, '0')}.m4a`, 'audio/mp4']),
 ]);
 
@@ -37,6 +39,7 @@ export async function serveStudyAsset(request, env, name) {
     'Cache-Control': name === 'review.json' ? 'public, max-age=300' : 'public, max-age=3600',
     'X-Content-Type-Options': 'nosniff',
   });
+  if (name === 'review-full.m4a') headers.set('Content-Disposition', 'attachment; filename="SCP-review-with-chapters.m4a"');
   if (request.headers.get('If-None-Match')?.split(',').map(x => x.trim()).some(x => x === etag || x === '*' || x === `W/${etag}`)) return new Response(null, {status: 304, headers});
   let rangeHeader = request.headers.get('Range');
   const ifRange = request.headers.get('If-Range');
