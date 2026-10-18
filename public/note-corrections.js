@@ -8,7 +8,44 @@ const agingCorrection={
 };
 export const noteCorrections=[agingCorrection];
 
+// Page 8's two-line Divrei Malkiel passage belongs to the existing first essay.
+// Partition the first line so green and blue never darken each other by overlap.
+const divreiMalkielSpans=[
+  {id:'highlight-supplied-divrei-malkiel-name',color:'blue',text:'דברי מלכיאל (Divrei Malkiel)',pdf_points:[43.2,273.2,174.1,285.46],authority_ids:['divrei-malkiel'],blue_role:'authority'},
+  {id:'highlight-supplied-divrei-malkiel-line1',color:'green',text:'– Relies on the Magen',pdf_points:[174.1,273.2,288,285.46],authority_ids:[],blue_role:null},
+  {id:'highlight-supplied-divrei-malkiel-line2',color:'green',text:'Avraham as one factor among others to permit.',pdf_points:[43.2,285.46,254.8,296.2],authority_ids:[],blue_role:null}
+];
+const addUnique=(list,value)=>{if(!list.includes(value))list.push(value)};
+
+function addDivreiMalkielHighlight(data){
+  const section=data.study_sections.find(s=>s.id==='study-017');
+  const essay=data.essays.find(e=>e.id==='essay-1');
+  const chapter=data.chapters.find(c=>c.id==='chapter-056');
+  if(!section||!essay||!chapter)return;
+  for(const span of divreiMalkielSpans){
+    if(!data.highlight_spans.some(s=>s.id===span.id))data.highlight_spans.push({
+      ...span,pdf_points:[...span.pdf_points],authority_ids:[...span.authority_ids],
+      page:8,column:0,parent_test_color:'green',font_max:9.96,
+      bbox:span.pdf_points.map((n,i)=>n/(i%2?792:612)),
+      section_id:'pdf-section-031',section_title:section.title,study_section_id:section.id,
+      essay_id:essay.id,test_kind:'essay',audio_chapter_ids:[chapter.id],
+      alignment_status:'topic_aligned',match_basis:'Course-owner highlight correction; existing essay topic alignment.',
+      supplemental_highlight:true
+    });
+    for(const owner of [section,essay,chapter])addUnique(owner.highlight_ids,span.id);
+  }
+  for(const owner of [section,essay])addUnique(owner.required_blue_authority_ids,'divrei-malkiel');
+  addUnique(essay.required_blue_authorities,'Divrei Malkiel');
+  addUnique(chapter.blue_authority_ids,'divrei-malkiel');
+  if(!data.authorities.some(a=>a.id==='divrei-malkiel'))data.authorities.push({
+    id:'divrei-malkiel',name:'Divrei Malkiel',pdf_highlight_ids:[divreiMalkielSpans[0].id],
+    pdf_pages:[8],required_in_essay_ids:[essay.id],multiple_choice_study_section_ids:[],
+    audio_mentions:[],audio_mention_status:'no_confident_word_match'
+  });
+}
+
 export function applyNoteCorrections(data){
+  addDivreiMalkielHighlight(data);
   for(const correction of noteCorrections){
     for(const span of data.highlight_spans){
       if(span.page!==correction.page||!correction.highlightIds.includes(span.id))continue;

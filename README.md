@@ -50,3 +50,5 @@ The audio timeline uses the existing chapter boundaries in `review.json`: gold m
 
 
 Page 16 has a course-owner correction in `public/note-corrections.js`: aging Stam Yeinam in your house is ASUR according to the Shulchan Aruch (SA). A clearly labeled SVG overlay covers only the incorrect paragraph and scales with the PDF. It retains the linked audio action and appears in the topic's Focus panel. The same correction replaces the stale passage wording in the site's in-memory search/accessibility data; source geometry and R2 files remain unchanged. The original PDF link includes a correction notice.
+
+Page 8 also includes the course-owner's missing green highlight over the Divrei Malkiel passage, with his Hebrew/English name in blue. Supplemental spans in `note-corrections.js` join the existing Essay 1 study section and audio chapter. Divrei Malkiel is appended to required authority names (preserving existing saved checklist indexes); no exact spoken-name timestamp is inferred. The overlays use non-overlapping green/blue regions and scale with the PDF.
