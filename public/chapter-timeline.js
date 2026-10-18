@@ -21,14 +21,21 @@ export function timelineTime(clientX,left,width,duration,thumbWidth=14){
   return clamp((clientX-left-thumbWidth/2)/(width-thumbWidth),0,1)*duration;
 }
 
+// Quantize once so the two labels change together, even for fractional chapters.
+export function chapterClock(position){
+  const duration=Math.ceil(position.chapter.end-position.chapter.start);
+  const elapsed=position.remaining===0?duration:clamp(Math.floor(position.elapsed),0,duration);
+  return {duration,elapsed,remaining:duration-elapsed};
+}
+
 export function createChapterTimeline({chapters,duration,format}){
   const $=s=>document.querySelector(s),range=$('#seek'),rail=$('#chapterRail');
   const active=$('#chapterRange'),played=$('#chapterPlayed'),preview=$('#chapterPreview');
   const tip=$('#chapterTooltip'),heading=$('#chapterTipTitle'),description=$('#chapterTipDescription');
   let keyboard=false,dragging=false,lastPointer=null,hideTimer;
   const pct=n=>n+'%';
-  const remaining=n=>format(Math.ceil(Math.max(0,n)));
-  const timing=p=>format(p.elapsed)+' elapsed · '+remaining(p.remaining)+' left';
+  const timing=p=>{const c=chapterClock(p);return format(c.elapsed)+' / −'+format(c.remaining)};
+  const spokenTiming=p=>{const c=chapterClock(p);return format(c.elapsed)+' elapsed, '+format(c.remaining)+' remaining in chapter'};
   const text=(el,value)=>{if(el.textContent!==value)el.textContent=value};
   for(const chapter of chapters.slice(1)){
     const marker=document.createElement('i');marker.className='chapter-marker';
@@ -47,7 +54,8 @@ export function createChapterTimeline({chapters,duration,format}){
     clearTimeout(hideTimer);
     text($('#chapterTipLabel'),'Chapter '+(p.index+1)+' / '+chapters.length+(p.chapter.pdf_pages?.length?' · PDF p. '+p.chapter.pdf_pages.join(', '):''));
     text(heading,p.chapter.title);text(description,p.chapter.test_focus||'');description.hidden=!p.chapter.test_focus;
-    text($('#chapterTipTime'),format(p.time)+' in recording');text($('#chapterTipProgress'),timing(p));
+    text($('#chapterTipTime'),'Start '+format(p.chapter.start)+' · End '+format(p.chapter.end));
+    text($('#chapterTipProgress'),'Duration '+format(chapterClock(p).duration));
     preview.style.left=pct(p.startPercent);preview.style.width=pct(p.widthPercent);preview.hidden=false;
     tip.hidden=false;positionTip(x);
   }
@@ -79,7 +87,8 @@ export function createChapterTimeline({chapters,duration,format}){
     if(!p){text($('#chapterLabel'),'Between chapters');text($('#chapterTiming'),'');return}
     active.style.left=played.style.left=pct(p.startPercent);active.style.width=pct(p.widthPercent);played.style.width=pct(p.playedPercent);
     text($('#chapterLabel'),'Chapter '+(p.index+1)+' / '+chapters.length);text($('#chapterTiming'),timing(p));
-    range.setAttribute('aria-valuetext',format(p.time)+' of '+format(duration)+'. Chapter '+(p.index+1)+' of '+chapters.length+': '+p.chapter.title+'. '+timing(p));
+    $('#chapterTiming').setAttribute('aria-label',spokenTiming(p));
+    range.setAttribute('aria-valuetext',format(p.time)+' of '+format(duration)+'. Chapter '+(p.index+1)+' of '+chapters.length+': '+p.chapter.title+'. '+spokenTiming(p));
     if(!tip.hidden&&keyboard&&lastPointer===null)showCurrent();
   }};
 }

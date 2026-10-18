@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {chapterPosition,timelineTime} from './public/chapter-timeline.js';
+import {chapterPosition,timelineTime,chapterClock} from './public/chapter-timeline.js';
 const chapters=[{id:'a',start:0,end:19},{id:'b',start:19,end:44},{id:'c',start:44,end:60.25}];
 
 test('chapter boundaries and recording endpoint give the correct elapsed/remaining time',()=>{
@@ -27,4 +27,20 @@ test('millisecond playback precision does not leave a phantom second at the reco
   const duration=4481.738005;
   const p=chapterPosition([{start:4451,end:duration}],4481.738,duration);
   assert.equal(p.remaining,0);assert.equal(p.time,duration);
+});
+
+test('fractional chapter timers tick together and their sum remains constant',()=>{
+  const fractional=[{start:10.2,end:25.7}];
+  const clock=t=>chapterClock(chapterPosition(fractional,t,25.7));
+  assert.deepEqual(clock(10.2),{duration:16,elapsed:0,remaining:16});
+  assert.deepEqual(clock(10.8),clock(10.2));
+  assert.deepEqual(clock(11.3),{duration:16,elapsed:1,remaining:15});
+  let previous=clock(10.2);
+  for(let t=10.21;t<25.7;t+=.07){
+    const current=clock(t);
+    assert.equal(current.elapsed+current.remaining,16);
+    assert.equal(current.elapsed-previous.elapsed,previous.remaining-current.remaining);
+    previous=current;
+  }
+  assert.deepEqual(clock(25.7),{duration:16,elapsed:16,remaining:0});
 });

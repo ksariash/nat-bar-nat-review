@@ -1,4 +1,4 @@
-import {createChapterTimeline} from './chapter-timeline.js';
+import {createChapterTimeline} from './chapter-timeline.js?v=20261018-chapters2';
 import {passageParts, passageVisible, visiblePartIndex, horizontalTarget} from './pdf-navigation.js';
 import {orderedTopics, rankedVisits, passageEntry, adjacentPassage} from './study-navigation.js';
 import {reviewVisits, reviewRanges, reviewPosition, adjacentReviewVisit} from './review-queue.js';
