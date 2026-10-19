@@ -6,6 +6,7 @@ import {reviewVisits, reviewRanges, reviewPosition, adjacentReviewVisit} from '.
 import {createChunkPlayer,normalizePlaybackRate} from './chunk-player.js?v=20261018-resume1';
 import {validatedSkips, skipAt} from './off-topic.js';
 import {createFloatingPlayer} from './floating-player.js?v=20261018-compact1';
+import {enablePdfDragScroll} from './pdf-drag-scroll.js?v=20261018-pan1';
 import * as pdfjs from './vendor/pdf.mjs';
 pdfjs.GlobalWorkerOptions.workerSrc=new URL('./vendor/pdf.worker.mjs',import.meta.url).href;
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)], esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -236,6 +237,7 @@ async function changeZoom(value,point){if(!pdf)return;viewRevision++;readingColu
 async function readColumn(side){if(!pdf)return;viewRevision++;const pane=$('#pdfScroll'),r=pane.getBoundingClientRect(),anchor=anchorAt(r.left+30,r.top+30);readingColumn=side;zoom=2.25;await renderPDF();keepAnchor(anchor);const target=document.getElementById('page-'+anchor.page);pane.scrollLeft=target.offsetLeft+target.clientWidth*(side==='left'?.065:.525)-10;updateZoomControls()}
 $('#readLeft').onclick=()=>readColumn('left');$('#readRight').onclick=()=>readColumn('right');
 const surface=$('#pdfScroll');
+enablePdfDragScroll(surface,{onDragStart:()=>{partPinned=false;viewRevision++;readingColumn=null;lastTap=null;updateZoomControls()}});
 const distance=touches=>Math.hypot(touches[0].clientX-touches[1].clientX,touches[0].clientY-touches[1].clientY);
 const midpoint=touches=>({x:(touches[0].clientX+touches[1].clientX)/2,y:(touches[0].clientY+touches[1].clientY)/2});
 surface.addEventListener('touchstart',event=>{if(event.touches.length===2&&pdf){const mid=midpoint(event.touches);pinch={distance:distance(event.touches),zoom,anchor:anchorAt(mid.x,mid.y),width:paper().clientWidth/zoom,height:paper().clientHeight/zoom};lastTap=null;readingColumn=null;suppressTapUntil=Date.now()+500;event.preventDefault()}},{passive:false});
