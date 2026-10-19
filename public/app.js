@@ -5,6 +5,7 @@ import {orderedTopics, rankedVisits, passageEntry, adjacentPassage, previousPass
 import {reviewVisits, reviewRanges, reviewPosition, adjacentReviewVisit} from './review-queue.js';
 import {createChunkPlayer,normalizePlaybackRate} from './chunk-player.js?v=20261018-resume1';
 import {validatedSkips, skipAt} from './off-topic.js';
+import {createFloatingPlayer} from './floating-player.js?v=20261018-drag1';
 import * as pdfjs from './vendor/pdf.mjs';
 pdfjs.GlobalWorkerOptions.workerSrc=new URL('./vendor/pdf.worker.mjs',import.meta.url).href;
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)], esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -189,9 +190,11 @@ function svg(name){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentC
 for(const [id,name] of Object.entries({menu:'menu',detailsToggle:'panel',prevPage:'left',nextPage:'right',zoomOut:'minus',zoomIn:'plus',readLeft:'columnLeft',readRight:'columnRight',prevTopic:'prev',nextTopic:'next',loop:'repeat',closeMore:'close',play:'play',hidePlayer:'down',miniPlay:'pause',expandPlayer:'expand',restorePlayerIcon:'up'}))$('#'+id).innerHTML=svg(name);
 function skipIcon(forward=false){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g ${forward?'transform="translate(24 0) scale(-1 1)"':''}><path d="M6.34 6.34A8 8 0 1 1 4 12M6.34 2.5v3.84h3.84"/></g><text x="12" y="12" dy=".35em" text-anchor="middle" fill="currentColor" stroke="none" font-family="Arial, sans-serif" font-size="7.3" font-weight="700">10</text></svg>`}$('#rewind').innerHTML=skipIcon();$('#forward').innerHTML=skipIcon(true);close.innerHTML=svg('close');
 
+const floatingPlayer=createFloatingPlayer({elements:[$('#miniPlayer'),$('#restorePlayer')],position:memory.floatingPlayerPosition,onPositionChange:position=>{memory.floatingPlayerPosition=position;persist()}});
 function updatePlayerVisibility(){
  const floating=playerHidden&&(player?.playing??false),focused=document.activeElement;
  $('#fullPlayer').hidden=playerHidden;$('#miniPlayer').hidden=!floating;$('#restorePlayer').hidden=!playerHidden||floating;
+ floatingPlayer.layout();
  // Keep keyboard focus reachable if a pause/end removes the floating controls.
  if(playerHidden&&!floating&&$('#miniPlayer').contains(focused))$('#restorePlayer').focus({preventScroll:true});
 }
