@@ -5,7 +5,7 @@ import {orderedTopics, rankedVisits, passageEntry, adjacentPassage, previousPass
 import {reviewVisits, reviewRanges, reviewPosition, adjacentReviewVisit} from './review-queue.js';
 import {createChunkPlayer,normalizePlaybackRate} from './chunk-player.js?v=20261018-resume1';
 import {validatedSkips, skipAt} from './off-topic.js';
-import {createFloatingPlayer} from './floating-player.js?v=20261018-drag1';
+import {createFloatingPlayer} from './floating-player.js?v=20261018-compact1';
 import * as pdfjs from './vendor/pdf.mjs';
 pdfjs.GlobalWorkerOptions.workerSrc=new URL('./vendor/pdf.worker.mjs',import.meta.url).href;
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)], esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -13,7 +13,7 @@ const fmt=t=>{t=Math.max(0,Math.floor(Number(t)||0));return t>=3600?`${Math.floo
 let initializationComplete=false,queuedPage=null,lastSessionSave=0;let partSelection=null,parts=[],partIndex=0,partPinned=false;let D,pdf,pageNum=3,zoom=1,renderID=0,renderTask=null,selected=null,filter='all',query='',currentChapter=null,currentCue=null,loopRange=null,chunkIndex=0,pendingSeek=null,playAfterLoad=false,following=true,activePanel='focus',essayID='essay-1',toastTimer;
 let reviewMode=false,reviewTimer=null,reviewComplete=false;
 let player,chapterTimeline;let skipIntervals=[],replaySkipId=null,lastSkipped=null;const audio=$('#audio');let memory={};try{const saved=JSON.parse(localStorage.getItem('scp-review-desk-v1')||'{}');if(saved&&typeof saved==='object'&&!Array.isArray(saved))memory=saved}catch{};for(const key of ['review','saved','studied','checks','answers'])if(!memory[key]||typeof memory[key]!=='object'||Array.isArray(memory[key]))memory[key]={};
-let playerHidden=memory.playerHidden===true;
+let playerHidden=memory.playerHidden===true,miniCollapsed=memory.miniCollapsed===true;
 memory.playbackRate=normalizePlaybackRate(memory.playbackRate);$('#rate').value=String(memory.playbackRate);
 function persist(){try{localStorage.setItem('scp-review-desk-v1',JSON.stringify(memory))}catch{toast('Browser storage is unavailable; changes will last for this visit.')}}
 function toast(s,duration=3500){$('#toast').textContent=s;$('#toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('visible'),duration)}
@@ -168,7 +168,7 @@ $('#overlays').addEventListener('click',e=>{
 $$('[data-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.filter;$$('[data-filter]').forEach(x=>x.classList.toggle('active',x===b));nav()});
 $$('[data-panel]').forEach(b=>b.onclick=()=>panel(b.dataset.panel));$('#search').oninput=e=>{query=e.target.value.trim();nav();if(activePanel==='transcript')transcript()};$('#clearSearch').onclick=()=>{$('#search').value='';query='';nav();if(activePanel==='transcript')transcript()};$('#transcriptRows').onclick=e=>{const b=e.target.closest('[data-transcript]');if(b)jump(D.segments.find(s=>s.id===b.dataset.transcript).start,true)};
 $('#practicePanel').addEventListener('change',e=>{if(e.target.id==='essaySelect'){essayID=e.target.value;practice()}if(e.target.id==='revealChecklist'){memory.reveal=e.target.checked;$('#checklist').hidden=!e.target.checked;persist()}if(e.target.dataset.check){memory.checks[e.target.dataset.check]=e.target.checked;persist();updateReadiness()}});$('#practicePanel').addEventListener('input',e=>{if(e.target.id==='practiceAnswer'){memory.answers[essayID]=e.target.value;persist()}});$('#practicePanel').addEventListener('click',e=>{const n=e.target.closest('[data-essay-notes]');if(n){following=false;$('#follow').checked=false;selectTopic(n.dataset.essayNotes,{openPanel:false})}const p=e.target.closest('[data-essay-play]');if(p){const x=D.essays.find(x=>x.id===p.dataset.essayPlay);following=true;$('#follow').checked=true;jump(x.audio_start,true);followChapter(chapter(x.audio_chapter_ids.find(id=>chapter(id).kind==='essay')||x.audio_chapter_ids[0]))}});
-$('#play').onclick=$('#miniPlay').onclick=()=>{if(player?.playing)player.pause();else safePlay()};$('#rewind').onclick=()=>jump(globalTime()-10,player?.playing??false);$('#forward').onclick=()=>jump(globalTime()+10,player?.playing??false);$('#seek').oninput=e=>jump(Number(e.target.value),player?.playing??false);$('#rate').onchange=e=>{memory.playbackRate=normalizePlaybackRate(e.target.value);$('#rate').value=String(memory.playbackRate);player?.setRate(memory.playbackRate);if(initializationComplete)rememberSession();else persist()};
+$('#play').onclick=$('#miniPlay').onclick=()=>{if(player?.playing)player.pause();else safePlay()};$('#rewind').onclick=$('#miniRewind').onclick=()=>jump(globalTime()-10,player?.playing??false);$('#forward').onclick=()=>jump(globalTime()+10,player?.playing??false);$('#seek').oninput=e=>jump(Number(e.target.value),player?.playing??false);$('#rate').onchange=e=>{memory.playbackRate=normalizePlaybackRate(e.target.value);$('#rate').value=String(memory.playbackRate);player?.setRate(memory.playbackRate);if(initializationComplete)rememberSession();else persist()};
 $('#loop').onclick=()=>{if(!D)return;if(loopRange?.mode==='topic'){loopRange=null}else{const c=chapter(currentChapter);if(!c)return;loopRange={start:c.start,end:c.end,mode:'topic'};toast('Repeating: '+c.title)}$('#loop').setAttribute('aria-pressed',String(!!loopRange))};
 function navigateAudio(direction){
  if(!D||!currentChapter)return;const skips=memory.skipOfftopic===true?skipIntervals:[],time=globalTime();
@@ -178,7 +178,7 @@ function navigateAudio(direction){
  if(!target){toast(direction<0?'You are at the first review passage.':'You are at the last review passage.');return}
  resetRepeat();replaySkipId=null;jump(target.time,player?.playing??false);
 }
-$('#prevTopic').onclick=()=>navigateAudio(-1);$('#nextTopic').onclick=()=>navigateAudio(1);
+$('#prevTopic').onclick=$('#miniPrev').onclick=()=>navigateAudio(-1);$('#nextTopic').onclick=$('#miniNext').onclick=()=>navigateAudio(1);
 $$('[data-sort]').forEach(b=>b.onclick=()=>{memory.topicSort=b.dataset.sort;persist();nav();scrollActiveTopic()});
 $('#prevPage').onclick=()=>manualPage(pageNum-1);$('#nextPage').onclick=()=>manualPage(pageNum+1);$('#pageInput').onchange=e=>manualPage(e.target.value);$('#zoomIn').onclick=()=>changeZoom(zoom+.25);$('#zoomOut').onclick=()=>changeZoom(zoom-.25);$('#fit').onclick=()=>changeZoom(1);$('#follow').onchange=e=>{following=e.target.checked;if(following)followChapter(chapter(currentChapter));else updateReturnToAudio()};$('#backCurrent').onclick=()=>{following=true;$('#follow').checked=true;followChapter(chapter(currentChapter))};$('#help').onclick=()=>$('#helpDialog').showModal();$('#closeHelp').onclick=()=>$('#helpDialog').close();$('#helpDialog').onclick=e=>{if(e.target===e.currentTarget)e.currentTarget.close()};$('#menu').onclick=()=>{if($('#sidebar').classList.contains('open'))closeStudyPanels();else openStudyMap()};
 $('#detailsToggle').onclick=()=>{if($('.details').classList.contains('open'))$('.details').classList.remove('open');else {$('#sidebar').classList.remove('open');panel(activePanel)}};const close=document.createElement('button');close.className='icon panel-close mobile';close.textContent='×';close.setAttribute('aria-label','Close study panel');close.onclick=()=>$('.details').classList.remove('open');$('.details').append(close);
@@ -187,32 +187,41 @@ let resizeTimer;new ResizeObserver(()=>{clearTimeout(resizeTimer);resizeTimer=se
 
 const shapes={bookmark:'<path d="M6 4h12v17l-6-4-6 4z"/>',check:'<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',flag:'<path d="M5 21V4m0 0c5-4 9 4 14 0v10c-5 4-9-4-14 0"/>',document:'<path d="M6 3h8l4 4v14H6zM14 3v5h4M9 12h6M9 16h6"/>',repeat:'<path d="M20 7H7a4 4 0 0 0-4 4M20 7l-4-4m4 4-4 4M4 17h13a4 4 0 0 0 4-4M4 17l4 4m-4-4 4-4"/>',menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',panel:'<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M14 4v16M6 8h5M6 12h5"/>',left:'<path d="m14 6-6 6 6 6"/>',right:'<path d="m10 6 6 6-6 6"/>',minus:'<path d="M5 12h14"/>',plus:'<path d="M5 12h14M12 5v14"/>',play:'<path d="m9 5 11 7-11 7z" fill="currentColor" stroke="none"/>',pause:'<path d="M8 5v14M16 5v14" stroke-width="4"/>',back:'<path d="M5 8a8 8 0 1 1-1 8M5 3v5h5"/>',forward:'<path d="M19 8a8 8 0 1 0 1 8M19 3v5h-5"/>',prev:'<path d="M6 5v14m12-14-9 7 9 7z"/>',next:'<path d="M18 5v14M6 5l9 7-9 7z"/>',down:'<path d="m6 9 6 6 6-6"/>',up:'<path d="m6 15 6-6 6 6"/>',expand:'<path d="M9 3H3v6m12-6h6v6M9 21H3v-6m12 6h6v-6"/>',close:'<path d="m6 6 12 12M6 18 18 6"/>',columnLeft:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16M6 8h3M6 12h3M6 16h3"/>',columnRight:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16M15 8h3M15 12h3M15 16h3"/>'};
 function svg(name){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${shapes[name]}</svg>`}
-for(const [id,name] of Object.entries({menu:'menu',detailsToggle:'panel',prevPage:'left',nextPage:'right',zoomOut:'minus',zoomIn:'plus',readLeft:'columnLeft',readRight:'columnRight',prevTopic:'prev',nextTopic:'next',loop:'repeat',closeMore:'close',play:'play',hidePlayer:'down',miniPlay:'pause',expandPlayer:'expand',restorePlayerIcon:'up'}))$('#'+id).innerHTML=svg(name);
+for(const [id,name] of Object.entries({menu:'menu',detailsToggle:'panel',prevPage:'left',nextPage:'right',zoomOut:'minus',zoomIn:'plus',readLeft:'columnLeft',readRight:'columnRight',prevTopic:'prev',nextTopic:'next',loop:'repeat',closeMore:'close',play:'play',hidePlayer:'down',miniPlay:'play',miniPrev:'prev',miniNext:'next',expandPlayer:'up'}))$('#'+id).innerHTML=svg(name);
 function skipIcon(forward=false){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g ${forward?'transform="translate(24 0) scale(-1 1)"':''}><path d="M6.34 6.34A8 8 0 1 1 4 12M6.34 2.5v3.84h3.84"/></g><text x="12" y="12" dy=".35em" text-anchor="middle" fill="currentColor" stroke="none" font-family="Arial, sans-serif" font-size="7.3" font-weight="700">10</text></svg>`}$('#rewind').innerHTML=skipIcon();$('#forward').innerHTML=skipIcon(true);close.innerHTML=svg('close');
 
-const floatingPlayer=createFloatingPlayer({elements:[$('#miniPlayer'),$('#restorePlayer')],position:memory.floatingPlayerPosition,onPositionChange:position=>{memory.floatingPlayerPosition=position;persist()}});
+$('#miniRewind').innerHTML=skipIcon();
+const floatingPlayer=createFloatingPlayer({elements:[$('#miniPlayer')],position:memory.floatingPlayerPosition,onPositionChange:position=>{memory.floatingPlayerPosition=position;persist()}});
 function updatePlayerVisibility(){
- const floating=playerHidden&&(player?.playing??false),focused=document.activeElement;
- $('#fullPlayer').hidden=playerHidden;$('#miniPlayer').hidden=!floating;$('#restorePlayer').hidden=!playerHidden||floating;
+ $('#fullPlayer').hidden=playerHidden;$('#miniPlayer').hidden=!playerHidden;
  floatingPlayer.layout();
- // Keep keyboard focus reachable if a pause/end removes the floating controls.
- if(playerHidden&&!floating&&$('#miniPlayer').contains(focused))$('#restorePlayer').focus({preventScroll:true});
 }
 function updateMiniPlayer(){
  if(!playerHidden||!player||!D)return;
  const time=globalTime(),c=D.chapters.find(c=>time>=c.start&&time<c.end)||D.chapters.at(-1);
  $('#miniTitle').textContent=c?.title||'Review audio';$('#miniTitle').title=c?.title||'Review audio';
  $('#miniTime').textContent=player.playing&&audio.readyState<3?'Loading audio…':fmt(time)+' · '+player.rate+'×';
+ $('#miniPlayer').title=$('#miniTitle').textContent+' · '+$('#miniTime').textContent;
+}
+function setMiniCollapsed(collapsed,{save=true}={}){
+ miniCollapsed=collapsed;$('#miniPlayer').classList.toggle('collapsed',collapsed);
+ $$('#miniPlayer .mini-extra').forEach(button=>{button.hidden=collapsed});
+ const label=collapsed?'Expand mini player':'Collapse mini player',handle=$('#miniHandle');
+ handle.innerHTML=svg(collapsed?'left':'right');handle.setAttribute('aria-label',label);handle.setAttribute('aria-expanded',String(!collapsed));handle.title=label+' · Drag to move';
+ if(save){memory.miniCollapsed=collapsed;persist()}
+ floatingPlayer.layout();
 }
 function setPlayerHidden(hidden,{save=true,focus=true}={}){
  playerHidden=hidden;document.body.classList.toggle('player-hidden',hidden);
  if(save){memory.playerHidden=hidden;persist()}
  $('#chapterTooltip').hidden=true;if($('#moreDialog').open)$('#moreDialog').close();
  updatePlayerVisibility();updateMiniPlayer();
- if(focus)(hidden?(player?.playing?$('#miniPlay'):$('#restorePlayer')):$('#play')).focus({preventScroll:true});
+ if(focus)(hidden?$('#miniPlay'):$('#play')).focus({preventScroll:true});
 }
 $('#hidePlayer').onclick=$('#hidePlayerOption').onclick=()=>setPlayerHidden(true);
-$('#expandPlayer').onclick=$('#restorePlayer').onclick=()=>setPlayerHidden(false);
+$('#expandPlayer').onclick=()=>setPlayerHidden(false);
+$('#miniHandle').onclick=()=>setMiniCollapsed(!miniCollapsed);
+setMiniCollapsed(miniCollapsed,{save:false});
 setPlayerHidden(playerHidden,{save:false,focus:false});
 
 let readingColumn=null,pinch=null,lastTap=null,suppressTapUntil=0;

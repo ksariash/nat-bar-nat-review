@@ -1,5 +1,5 @@
-// Share one position between the playing and paused controls, relative to the
-// available viewport so resizing or switching controls cannot strand them.
+// Keep a position relative to the available viewport so resizing or switching
+// between expanded and collapsed controls cannot strand the player.
 export function createFloatingPlayer({elements,position,onPositionChange}){
  const clamp=n=>Math.max(0,Math.min(1,n));
  let anchor={x:1,y:1},drag=null;
@@ -32,12 +32,13 @@ export function createFloatingPlayer({elements,position,onPositionChange}){
   element.addEventListener('pointerdown',event=>{
    if(drag||!event.isPrimary||event.button!==0)return;
    suppressClick=false;
-   // Pause/expand remain ordinary buttons; drag the topic area or Show player.
+   // Transport buttons stay clickable. A marked handle supports tap and drag.
    const control=event.target.closest('button,a,input,select');
-   if(control&&control!==element)return;
+   if(control&&control!==element&&!control.matches('[data-player-drag]'))return;
    const rect=element.getBoundingClientRect();
-   drag={element,id:event.pointerId,x:event.clientX,y:event.clientY,left:rect.left,top:rect.top,moved:false};
-   element.setPointerCapture(event.pointerId);
+   const capture=control||element;
+   drag={element,capture,id:event.pointerId,x:event.clientX,y:event.clientY,left:rect.left,top:rect.top,moved:false};
+   capture.setPointerCapture(event.pointerId);
   });
   element.addEventListener('pointermove',event=>{
    if(drag?.element!==element||drag.id!==event.pointerId)return;
@@ -48,8 +49,8 @@ export function createFloatingPlayer({elements,position,onPositionChange}){
   });
   const finish=event=>{
    if(drag?.element!==element||drag.id!==event.pointerId)return;
-   const moved=drag.moved;drag=null;element.classList.remove('dragging');
-   if(element.hasPointerCapture(event.pointerId))element.releasePointerCapture(event.pointerId);
+   const {moved,capture}=drag;drag=null;element.classList.remove('dragging');
+   if(capture.hasPointerCapture(event.pointerId))capture.releasePointerCapture(event.pointerId);
    if(moved){suppressClick=true;onPositionChange({...anchor})}
   };
   for(const type of ['pointerup','pointercancel','lostpointercapture'])element.addEventListener(type,finish);

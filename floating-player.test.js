@@ -30,7 +30,7 @@ test('floating controls default to the bottom right and keep a saved position ac
  assert.equal(mini.style.left,'45px');assert.equal(mini.style.top,'782px');
 });
 
-test('dragging the Show player button moves it without activating it; the next tap still works',()=>{
+test('dragging a floating control moves it without activating it; the next tap still works',()=>{
  const {mini,restore,controller,saved}=setup();mini.hidden=true;restore.hidden=false;controller.layout();
  restore.fire('pointerdown',{clientX:900,clientY:760});
  restore.fire('pointermove',{clientX:600,clientY:460});restore.fire('pointerup');
@@ -42,12 +42,24 @@ test('dragging the Show player button moves it without activating it; the next t
 });
 
 test('mini dragging clamps at viewport edges; cancelled drags do not swallow the next pause click',()=>{
- const {mini,saved}=setup(),pause={closest:()=>pause};
+ const {mini,saved}=setup(),pause={closest:()=>pause,matches:()=>false};
  mini.fire('pointerdown',{target:pause});mini.fire('pointermove',{clientX:200,clientY:200});mini.fire('pointerup');
  assert.equal(saved.length,0);
  mini.fire('pointerdown',{clientX:700,clientY:750});mini.fire('pointermove',{clientX:-2000,clientY:-2000});
  assert.equal(mini.style.left,'12px');assert.equal(mini.style.top,'12px');mini.fire('pointercancel');
  mini.fire('pointerdown',{target:pause});assert.equal(mini.fire('click',{target:pause}).stopped,undefined);
+});
+
+test('a drag handle keeps pointer capture on the button so taps still toggle it',()=>{
+ const {mini,saved}=setup(),captures=new Set();
+ const handle={closest:()=>handle,matches:()=>true,setPointerCapture:id=>captures.add(id),hasPointerCapture:id=>captures.has(id),releasePointerCapture:id=>captures.delete(id)};
+ mini.fire('pointerdown',{target:handle,clientX:670,clientY:750});
+ assert.equal(captures.has(1),true);assert.equal(mini.hasPointerCapture(1),false);
+ mini.fire('pointerup',{target:handle});assert.equal(mini.fire('click',{target:handle}).stopped,undefined);
+ mini.fire('pointerdown',{target:handle,clientX:670,clientY:750});
+ mini.fire('pointermove',{target:handle,clientX:570,clientY:650});mini.fire('pointerup',{target:handle});
+ assert.equal(saved.length,1);assert.equal(mini.style.left,'552px');assert.equal(mini.style.top,'630px');
+ assert.equal(mini.fire('click',{target:handle}).stopped,true);assert.equal(captures.size,0);
 });
 
 test('small touch movement remains a tap, keyboard movement does not seek, and Home resets',()=>{
