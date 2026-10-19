@@ -1,10 +1,27 @@
+export function normalizePlaybackRate(value) {
+  const rate = Number(value);
+  return [0.75, 1, 1.25, 1.5, 1.75, 2].includes(rate) ? rate : 1;
+}
+
 // Keep playback intent separate from the media element's temporary paused state while loading.
 export function createChunkPlayer(audio, chunks, duration, changed = () => {}, failed = () => {}) {
   let index = 0, pending = null, loading = false, intended = false, revision = 0, starting = 0;
+  let rate = 1;
   const time = () => pending ?? Math.min(duration, Math.round((chunks[index].start + (audio.currentTime || 0)) * 1000) / 1000);
+  function applyRate() {
+    // Browsers can reset playbackRate when load() changes the source.
+    if (audio.defaultPlaybackRate !== rate) audio.defaultPlaybackRate = rate;
+    if (audio.playbackRate !== rate) audio.playbackRate = rate;
+  }
+  function setRate(value) {
+    rate = normalizePlaybackRate(value);
+    applyRate();
+    return rate;
+  }
   async function playReady() {
     const request = revision;
     starting++;
+    applyRate();
     try { await audio.play(); if (!intended) audio.pause(); }
     catch (e) { if (request === revision && e.name !== 'AbortError') { intended = false; failed(e); changed(); } }
     finally { starting--; changed(); }
@@ -18,6 +35,7 @@ export function createChunkPlayer(audio, chunks, duration, changed = () => {}, f
     if (reload || next !== index || !audio.src) {
       pending = t; loading = true; index = next;
       audio.src = chunks[index].src; audio.load();
+      applyRate();
     } else if (loading || audio.readyState === 0) {
       pending = t;
     } else {
@@ -27,6 +45,7 @@ export function createChunkPlayer(audio, chunks, duration, changed = () => {}, f
     changed();
   }
   audio.addEventListener('loadedmetadata', () => {
+    applyRate();
     if (!loading && pending === null) return;
     const t = pending ?? chunks[index].start;
     audio.currentTime = Math.max(0, t - chunks[index].start);
@@ -34,12 +53,14 @@ export function createChunkPlayer(audio, chunks, duration, changed = () => {}, f
     if (intended) playReady();
     changed();
   });
+  audio.addEventListener('loadstart', applyRate);
   // Media events are queued: an event from the previous source must not undo a newer command.
   audio.addEventListener('play', () => { if (!intended && !audio.paused) audio.pause(); changed(); });
   audio.addEventListener('pause', () => { if (!loading && !starting && audio.paused && !audio.ended) intended = false; changed(); });
   audio.addEventListener('error', () => { intended = false; loading = false; changed(); });
   return {
-    seek, time,
+    seek, time, setRate,
+    get rate() { return rate; },
     get index() { return index; },
     get pending() { return pending; },
     get playing() { return intended || (!audio.paused && !audio.ended); },

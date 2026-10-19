@@ -46,6 +46,8 @@ Review mode plays all visits linked to topics flagged Needs review, in audio ord
 
 Deep links accept validated `chapter` and `topic` IDs from `review.json`, for example `?chapter=chapter-001&topic=study-002`. They open the linked notes and seek without autoplay. Downloads always contain the full recording, independent of review/skip settings. M4A chapter display depends on the student's audio player; the HTML index provides portable links back into the site.
 
+Playback speed is saved in browser storage and applied to both `defaultPlaybackRate` and `playbackRate` before playback and after each audio source load. Seeks save immediately; active listening progress saves once per second and on pause or leaving the page. Idle tabs do not periodically overwrite progress. Chapter/topic parameters are removed from the current address after their initial jump, so refreshing restores the latest listening position. Opening a fresh chapter link still jumps to its requested passage. Restoring a session never autoplays.
+
 The audio timeline uses the existing chapter boundaries in `review.json`: gold marks the current chapter, darker gold shows its played portion, and ticks mark other chapter boundaries. Hovering previews the chapter title, focus, PDF pages, and chapter start/end/duration without seeking. Touch scrubbing and keyboard slider navigation also show previews. A compact counter shows elapsed / remaining time using one whole-second clock so both values change together; the outer labels retain the full-recording times. These times refer to source audio duration, independent of playback speed and off-topic skipping.
 
 

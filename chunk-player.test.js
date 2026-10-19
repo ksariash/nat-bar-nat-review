@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createChunkPlayer} from './public/chunk-player.js';
+import {createChunkPlayer,normalizePlaybackRate} from './public/chunk-player.js';
 class Audio extends EventTarget {
-  src='';currentTime=0;readyState=0;paused=true;ended=false;error=null;plays=0;
-  load(){this.readyState=0;this.pause()}
+  src='';currentTime=0;readyState=0;paused=true;ended=false;error=null;plays=0;playbackRate=1;defaultPlaybackRate=1;playedRates=[];
+  load(){this.readyState=0;this.playbackRate=this.defaultPlaybackRate;this.pause()}
   pause(){this.paused=true;this.dispatchEvent(new Event('pause'))}
-  async play(){this.plays++;this.paused=false;this.dispatchEvent(new Event('play'))}
+  async play(){this.plays++;this.playedRates.push(this.playbackRate);this.paused=false;this.dispatchEvent(new Event('play'))}
   ready(){this.readyState=1;this.dispatchEvent(new Event('loadedmetadata'))}
 }
 const setup=()=>{const a=new Audio();return [a,createChunkPlayer(a,[{start:0,end:60,src:'a'},{start:60.01,end:120,src:'b'}],120)]};
@@ -29,4 +29,30 @@ test('a new play command wins over completion of an older cancelled play request
  a.play=()=>new Promise(resolve=>requests.push(()=>{a.paused=false;a.dispatchEvent(new Event('play'));resolve()}));
  p.play();p.pause();p.play();requests[0]();requests[1]();await Promise.resolve();
  assert.equal(a.paused,false);assert.equal(p.playing,true);p.pause();assert.equal(p.playing,false);
+});
+
+test('restored speed reaches the media element before playback and survives source resets',()=>{
+ const[a,p]=setup();p.setRate(1.75);p.seek(75,false);
+ assert.equal(a.defaultPlaybackRate,1.75);assert.equal(a.playbackRate,1.75);
+ a.playbackRate=1;a.dispatchEvent(new Event('loadstart'));assert.equal(a.playbackRate,1.75);
+ a.playbackRate=1;a.ready();assert.equal(p.time(),75);assert.equal(a.playbackRate,1.75);assert.equal(a.plays,0);
+ p.play();assert.deepEqual(a.playedRates,[1.75]);
+ p.seek(5,true);a.playbackRate=1;a.ready();
+ assert.deepEqual(a.playedRates,[1.75,1.75]);assert.equal(a.defaultPlaybackRate,1.75);
+});
+test('a speed change while a different chunk loads applies to the first played sample',()=>{
+ const[a,p]=setup();p.setRate(1.25);p.seek(70,true);p.setRate(2);a.ready();
+ assert.equal(a.currentTime,9.990000000000002);assert.deepEqual(a.playedRates,[2]);
+ a.error={code:2};a.dispatchEvent(new Event('error'));p.play();a.error=null;a.ready();
+ assert.deepEqual(a.playedRates,[2,2]);assert.equal(p.time(),70);
+});
+test('saved speed and position can initialize a fresh player without autoplay',()=>{
+ const[a,p]=setup();p.setRate(1.5);p.seek(83.25,false);
+ const saved={time:p.time(),rate:p.rate};const[b,next]=setup();next.setRate(saved.rate);next.seek(saved.time,false);
+ assert.equal(next.time(),83.25);assert.equal(b.playbackRate,1.5);b.ready();
+ assert.equal(next.time(),83.25);assert.equal(b.plays,0);next.play();assert.deepEqual(b.playedRates,[1.5]);
+});
+test('corrupt saved rates fall back to normal speed',()=>{
+ for(const value of [undefined,null,'bad',0,-1,99,Infinity,NaN])assert.equal(normalizePlaybackRate(value),1);
+ assert.equal(normalizePlaybackRate('1.5'),1.5);
 });
