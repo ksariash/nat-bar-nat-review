@@ -185,7 +185,8 @@ body.reading-mode{--header:0px;--player:88px}.reading-mode .masthead{display:non
 .pdf-scroll,.pdf-scroll *{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .pdf-scroll.pdf-dragging{scroll-behavior:auto!important}
 .pdf-scroll.pdf-dragging,.pdf-scroll.pdf-dragging *{cursor:grabbing!important}
-.player-collapse{position:absolute;right:16px;top:-22px;z-index:2;width:48px;height:44px;display:grid;place-items:center;padding:0;background:transparent;color:var(--teal);touch-action:manipulation}
+.player .transport{position:relative}
+.player-collapse{position:absolute;right:19px;top:-22px;z-index:2;width:48px;height:44px;display:grid;place-items:center;padding:0;background:transparent;color:var(--teal);touch-action:manipulation}
 .player-collapse:before{content:'';position:absolute;inset:8px 0;background:#f4f8ee;border:1px solid #b8cbb7;border-radius:9px;box-shadow:0 -2px 8px #17333712;z-index:-1}
 .player-collapse svg{width:20px;height:20px}
 .reading-mode .player-collapse{top:-44px}
@@ -200,6 +201,7 @@ body.player-hidden .workspace{height:calc(100dvh - var(--header) - var(--tools))
 .mini-player.collapsed{gap:2px}.mini-player.collapsed .mini-play{border-radius:10px}
 .player-hidden #toast{bottom:calc(84px + env(safe-area-inset-bottom))}
 @media(max-width:900px){
+ .player-collapse{right:16px}
  .player .now-playing{right:72px}
  .player-hidden .details.open{height:var(--visible-height,100dvh)}
  .player-hidden .details .panel,.player-hidden .sidebar #topicList{padding-bottom:100px}
