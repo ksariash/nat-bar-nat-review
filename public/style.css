@@ -176,9 +176,9 @@ body.reading-mode{--header:0px;--player:88px}.reading-mode .masthead{display:non
 .pdf-correction svg{display:block;width:100%;height:100%}.pdf-correction:hover{filter:none;box-shadow:0 0 0 1px #a84e32}.pdf-correction:focus-visible{outline:2px solid #245b5b;outline-offset:3px}
 .note-correction{margin:14px 0 20px;padding:12px 14px;border:1px solid #d6a78e;border-left:3px solid #a84e32;border-radius:8px;background:#fff5e9;color:#71351f;font-size:12px;line-height:1.6}.note-correction>strong{font-size:11px}.note-correction p{margin:6px 0 0}.original-pdf-note{font-size:11px;line-height:1.6;color:#71351f;margin:8px 0 0}
 
-/* Supplied highlights tint the PDF without repainting or obscuring its text. */
-.pdf-highlight.supplemental-green,.pdf-highlight.supplemental-green.selected{background:#daf2d0;mix-blend-mode:multiply}
-.pdf-highlight.supplemental-blue,.pdf-highlight.supplemental-blue.selected{background:#cfe8f6;mix-blend-mode:multiply}
+/* Alpha fills keep the PDF text visible even when canvas blending is unavailable. */
+.pdf-highlight.supplemental-green,.pdf-highlight.supplemental-green.selected{background:rgba(107,203,67,.25);mix-blend-mode:normal}
+.pdf-highlight.supplemental-blue,.pdf-highlight.supplemental-blue.selected{background:rgba(63,163,219,.25);mix-blend-mode:normal}
 
 /* The full audio bar can collapse without reserving its height in the reader. */
 .pdf-scroll{cursor:grab}
