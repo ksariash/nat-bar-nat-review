@@ -1,7 +1,7 @@
 import {applyNoteCorrections,pageCorrectionMarkup,studyCorrectionMarkup} from './note-corrections.js?v=20261018-correction2';
 import {createChapterTimeline} from './chapter-timeline.js?v=20261018-chapters2';
 import {passageParts, passageVisible, visiblePartIndex, horizontalTarget} from './pdf-navigation.js';
-import {orderedTopics, rankedVisits, passageEntry, adjacentPassage} from './study-navigation.js';
+import {orderedTopics, rankedVisits, passageEntry, adjacentPassage, previousPassage} from './study-navigation.js?v=20261018-previous1';
 import {reviewVisits, reviewRanges, reviewPosition, adjacentReviewVisit} from './review-queue.js';
 import {createChunkPlayer} from './chunk-player.js';
 import {validatedSkips, skipAt} from './off-topic.js';
@@ -168,7 +168,10 @@ $('#practicePanel').addEventListener('change',e=>{if(e.target.id==='essaySelect'
 $('#play').onclick=()=>{if(player?.playing)player.pause();else safePlay()};$('#rewind').onclick=()=>jump(globalTime()-10,player?.playing??false);$('#forward').onclick=()=>jump(globalTime()+10,player?.playing??false);$('#seek').oninput=e=>jump(Number(e.target.value),player?.playing??false);$('#rate').onchange=e=>audio.playbackRate=Number(e.target.value);
 $('#loop').onclick=()=>{if(!D)return;if(loopRange?.mode==='topic'){loopRange=null}else{const c=chapter(currentChapter);if(!c)return;loopRange={start:c.start,end:c.end,mode:'topic'};toast('Repeating: '+c.title)}$('#loop').setAttribute('aria-pressed',String(!!loopRange))};
 function navigateAudio(direction){
- if(!D||!currentChapter)return;const skips=memory.skipOfftopic===true?skipIntervals:[];const target=reviewMode?adjacentReviewVisit(queueVisits(),globalTime(),direction,skips):adjacentPassage(D.chapters,currentChapter,direction,skips);
+ if(!D||!currentChapter)return;const skips=memory.skipOfftopic===true?skipIntervals:[],time=globalTime();
+ const visits=reviewMode?queueVisits():D.chapters.filter(c=>c.study_section_ids?.length);
+ const current=D.chapters.find(c=>time>=c.start&&time<c.end)||chapter(currentChapter);
+ const target=direction<0?previousPassage(visits,time,skips):reviewMode?adjacentReviewVisit(visits,time,direction,skips):adjacentPassage(D.chapters,current.id,direction,skips);
  if(!target){toast(direction<0?'You are at the first review passage.':'You are at the last review passage.');return}
  resetRepeat();replaySkipId=null;jump(target.time,player?.playing??false);
 }
@@ -243,7 +246,7 @@ moreDialog.addEventListener('click',e=>{const r=moreDialog.getBoundingClientRect
 $('#moreHelp').onclick=()=>{moreDialog.close();$('#helpDialog').showModal()};
 for(const id of ['replaySkipped','backCurrent'])$('#'+id).addEventListener('click',()=>moreDialog.close());
 function updateMoreLabel(){
- const replay=!$('#replaySkipped').hidden;$('#moreLabel').textContent=replay?'Replay':'More';
+ const replay=!$('#replaySkipped').hidden;$('#moreLabel').textContent='More';
  $('#moreOptions').setAttribute('aria-label','More audio and reading settings'+(replay?', skipped aside available to replay':''));
 }
 new MutationObserver(updateMoreLabel).observe($('#replaySkipped'),{attributes:true,attributeFilter:['hidden']});updateMoreLabel();

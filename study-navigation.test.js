@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {orderedTopics,rankedVisits,adjacentPassage,passageEntry} from './public/study-navigation.js';
+import {orderedTopics,rankedVisits,adjacentPassage,passageEntry,previousPassage} from './public/study-navigation.js';
 import {horizontalTarget} from './public/pdf-navigation.js';
 
 test('PDF order respects columns even when highlight records are unordered; audio order is chronological with notes last',()=>{
@@ -27,6 +27,35 @@ test('horizontal reveal works below the old zoom threshold and preserves an alre
  assert.equal(horizontalTarget(260,470,0,393,500),93);
  assert.equal(horizontalTarget(100,280,30,393,900),30);
  assert.equal(horizontalTarget(50,250,200,393,900),34);
+});
+
+const visits=[{id:'a',start:0,end:20},{id:'b',start:20,end:40},{id:'c',start:50,end:80}];
+test('Previous restarts a passage after three seconds, then moves to the preceding one',()=>{
+ const restart=previousPassage(visits,30);
+ assert.equal(restart.chapter.id,'b');assert.equal(restart.time,20);
+ assert.equal(previousPassage(visits,restart.time).chapter.id,'a');
+ assert.equal(previousPassage(visits,23).chapter.id,'a');
+ assert.equal(previousPassage(visits,23.01).chapter.id,'b');
+});
+test('Previous measures the start window after a skipped intro and bypasses fully skipped passages',()=>{
+ const skips=[{start:20,end:40},{start:49,end:56}];
+ assert.equal(previousPassage(visits,65,skips).time,56);
+ assert.equal(previousPassage(visits,58,skips).time,0);
+ assert.equal(previousPassage(visits,56,skips).time,0);
+ assert.equal(previousPassage(visits,65).time,50);
+});
+test('Previous stays in supplied Review-mode visits, including gaps and the end of playback',()=>{
+ const marked=[visits[0],visits[2]];
+ assert.equal(previousPassage(marked,65).time,50);
+ assert.equal(previousPassage(marked,51).time,0);
+ assert.equal(previousPassage(marked,35).time,0);
+ assert.equal(previousPassage(marked,80).time,50);
+});
+test('Previous at the first passage restarts it without wrapping, and handles an empty queue',()=>{
+ assert.equal(previousPassage(visits,0).time,0);
+ assert.equal(previousPassage(visits,2).time,0);
+ assert.equal(previousPassage(visits,15).time,0);
+ assert.equal(previousPassage([],15),null);
 });
 test('oversized text aligns its leading edge, and targets never exceed the scroll range',()=>{
  assert.equal(horizontalTarget(600,1200,0,393,1400),584);

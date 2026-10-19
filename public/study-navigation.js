@@ -45,3 +45,19 @@ export function adjacentPassage(chapters, currentId, direction, skips = []) {
   }
   return null;
 }
+
+// Allow a second press during the first three seconds to move back one passage.
+// Callers supply either linked study passages or the marked Review-mode visits.
+export function previousPassage(chapters, time, skips = []) {
+  const current = chapters.find(c => time >= c.start && time < c.end);
+  const entry = current ? passageEntry(current, skips) : null;
+  if (entry !== null && time - entry > 3) return {chapter: current, time: entry};
+  const before = current?.start ?? time;
+  for (let i = chapters.length - 1; i >= 0; i--) {
+    if (chapters[i].start >= before) continue;
+    const start = passageEntry(chapters[i], skips);
+    if (start !== null) return {chapter: chapters[i], time: start};
+  }
+  // At the first playable passage, Previous simply returns to its beginning.
+  return entry !== null ? {chapter: current, time: entry} : null;
+}
